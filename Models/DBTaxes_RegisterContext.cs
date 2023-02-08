@@ -12,6 +12,7 @@ namespace Register.Models
     {
         public DBTaxes_RegisterContext()
         {
+
         }
 
         public DBTaxes_RegisterContext(DbContextOptions<DBTaxes_RegisterContext> options)

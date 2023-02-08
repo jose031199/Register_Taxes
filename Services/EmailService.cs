@@ -33,11 +33,11 @@ namespace Register.Services
                 mailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Html)
 
                 {
-                    Text = "<p>Hola " + fullname + "</p><br/>"
-                    + "Hemos registrado su cita de manera exitosa. <br/>" +
-                    "Datos de la cita.<br/>" +
-                    "<b>Nombre:</b>" + fullname + "<br/>" +
-                    "<b>Fecha:</b>" + date.ToString()
+                     Text = "<p>Hola " + fullname + "</p><br/>"
+                     + "Hemos registrado su cita de manera exitosa. <br/>" +
+                     "Datos de la cita.<br/>" +
+                     "<b>Nombre:</b>" + fullname + "<br/>" +
+                     "<b>Fecha:</b>" + date.ToString()
                 };
 
                 using var smtp = new SmtpClient();

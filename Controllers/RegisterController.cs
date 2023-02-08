@@ -8,6 +8,8 @@ using MimeKit;
 using MailKit.Net.Smtp;
 using Register.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 
 namespace Register.Controllers
 {
@@ -43,6 +45,7 @@ namespace Register.Controllers
                 else
                 {
                     ViewBag.ErroDate = null;
+                    ViewBag.Fechas = null;
                     AddTaxesDate(taxes);
                 }
             }
@@ -57,14 +60,43 @@ namespace Register.Controllers
         {
             if (Taxes_Date_Exist(taxes.FechaRegistro)!=true)
             {
-                DBContext.TaxesRegister.Add(taxes);
-                DBContext.SaveChanges();
+                AddSaveTaxes(taxes);
+                //DBContext.TaxesRegister.Add(taxes);
+                //DBContext.SaveChanges();
                
                 email.SendEmail(taxes.Correo,String.Concat(taxes.Nombre," ",taxes.Apellidos),taxes.FechaRegistro);
                 //SendEmail(taxes);
                 ViewBag.Message = "Register Created";
+            }  
+
+        }
+
+        public void AddSaveTaxes(TaxesRegister taxes) // Function in case the taxes_date is repeated will update or will Added
+        {
+            //var searchTaxes = DBContext.TaxesRegister.Where(t=>t.Nombre.Equals(taxes.Nombre)).ToList();
+            var searchTaxes = DBContext.TaxesRegister.Where(t => t.Nombre.Equals(taxes.Nombre) && t.Apellidos.Equals(taxes.Apellidos)&& t.Correo.Equals(taxes.Correo)).OrderBy(t=>t.FechaRegistro).ToArray();
+
+            if (searchTaxes.Length>=1)
+            {
+                if (searchTaxes.Length>1)
+                {
+                    for (int i =0;i<searchTaxes.Length-1; i++)
+                    {
+                        DBContext.TaxesRegister.Remove(searchTaxes[i]);
+                    }
+                    DBContext.SaveChanges();
+                }
+                var UpdateTaxes = DBContext.TaxesRegister.Where(t => t.Nombre.Equals(taxes.Nombre) && t.Apellidos.Equals(taxes.Apellidos) && t.Correo.Equals(taxes.Correo)).FirstOrDefault();
+                UpdateTaxes.FechaRegistro = taxes.FechaRegistro;
+                UpdateTaxes.NoTelefono = taxes.NoTelefono;
+                //DBContext.TaxesRegister.Remove(searchTaxes.)
+            }
+            else
+            {
+                DBContext.TaxesRegister.Add(taxes);
             }
 
+            DBContext.SaveChanges();
         }
         public bool GetTotal()
         {
@@ -84,51 +116,42 @@ namespace Register.Controllers
             if (findDates.Count()>=1)
             {
                 exist = true;
+               string message =  Available_Hours(fecha);
                 ViewBag.ErroDate = "Lo sentimos, pero ya hay una cita a las " + fecha.ToString();
+                ViewBag.Fechas = message;
             }
 
             return exist;
         }
 
-        /*public void SendEmail(TaxesRegister taxes)
+        public string Available_Hours(DateTime? fecha)
         {
-           try
+            var findHours = DBContext.TaxesRegister.Where(t => t.FechaRegistro.Value.Date.Equals(fecha.Value.Date)).ToArray();
+            string[] hours = { "9", "10", "11", "12", "15", "16", "17" } ;
+            string error = "La horas disponibles para el "+fecha.Value.Date.ToString("dd/MM/yyyy")+ " son: ";
+            int pos = 0;
+
+            for (int i=0;i<hours.Length;i++)
             {
-                var mailMessage = new MimeMessage();
-
-                mailMessage.From.Add(MailboxAddress.Parse("joseluisinho@outlook.com"));
-
-                mailMessage.To.Add(MailboxAddress.Parse(taxes.Correo));
-
-                mailMessage.Subject = "Cita Confirmada";
-
-                mailMessage.Body = new TextPart(MimeKit.Text.TextFormat.Html)
-
+                if (findHours[pos].FechaRegistro.Value.Hour.ToString().Equals(hours[i]))
                 {
+                    if (findHours.Length-1!= pos)
+                    {
+                        pos++;
+                    }
 
-                    Text = "Hola " + taxes.Nombre + "<br/>"
-                    + " Hemos registrado su cita de manera exitosa. <br/>" +
-                    "Datos de la cita.<br/>" +
-                    "<b>Nombre:</b>" + String.Concat(taxes.Nombre, taxes.Apellidos) + "<br/>" +
-                    "<b>Fecha:</b>" + taxes.FechaRegistro.ToString()
-                };
+                }
+                else
+                {
+                    error += hours[i] + ":00, ";
+                }
 
-                using var smtp = new SmtpClient();
-                
-                
-                //smtp.Connect("smtp.gmail.com", 465, MailKit.Security.SecureSocketOptions.SslOnConnect);
-                //smtp.Authenticate("pruebait1103@gmail.com", "Valonqar123");
-                smtp.Connect("smtp.office365.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-                smtp.Authenticate("joseluisinho@outlook.com", "America123");
-                smtp.Send(mailMessage);
-                smtp.Disconnect(true);
-            }
-            catch (Exception ex)
-            {
 
             }
 
+            
+            return error;
+        }
 
-        }*/
     }
 }
